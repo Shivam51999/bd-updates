@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mangalam Landmarks — BD Pipeline Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#1B3A6B; --blue:#2E5FA3; --orange:#D4621A;
+    --lblue:#E8F0FA; --lorange:#FDF0E8; --grey:#F5F5F5;
+    --ink:#1c2530; --sub:#5b6b80; --line:#e3e8ef;
+    --white:#ffffff; --risk:#C0392B; --riskbg:#FBEAEA;
+    --amber:#B8860B; --amberbg:#FDF3E0; --green:#1E7B4D; --greenbg:#E7F5EC;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--grey);color:var(--ink);}
+  header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  header .brand{display:flex;flex-direction:column;}
+  header .brand b{font-size:17px;letter-spacing:.2px;}
+  header .brand span{font-size:11.5px;color:#c7d5ea;}
+  .tabs{display:flex;gap:6px;}
+  .tab-btn{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 16px;border-radius:6px;font-size:12.5px;cursor:pointer;font-weight:bold;}
+  .tab-btn.active{background:var(--orange);border-color:var(--orange);}
+  .updated{font-size:10.5px;color:#c7d5ea;display:flex;align-items:center;gap:8px;}
+  .refresh-btn{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:4px 10px;border-radius:5px;font-size:10.5px;cursor:pointer;}
+  main{max-width:1320px;margin:0 auto;padding:18px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+  .kpi .lbl{font-size:10px;font-weight:bold;color:var(--navy);text-transform:uppercase;letter-spacing:.3px;min-height:26px;display:flex;align-items:center;justify-content:center;}
+  .kpi .val{font-size:22px;font-weight:bold;color:var(--orange);margin-top:4px;}
+  .kpi .sub{font-size:9.5px;color:var(--sub);margin-top:2px;}
+
+  .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;}
+  .card h3{margin:0 0 4px;font-size:13px;color:var(--navy);}
+  .card p.note{margin:0 0 10px;font-size:10.5px;color:var(--sub);}
+  .chart-wrap{position:relative;height:260px;}
+  .chart-wrap.tall{height:320px;}
+
+  table{width:100%;border-collapse:collapse;font-size:11.5px;}
+  th{background:var(--lblue);color:var(--navy);text-align:left;padding:6px 8px;font-size:10.5px;border-bottom:2px solid var(--navy);position:sticky;top:0;}
+  td{padding:6px 8px;border-bottom:1px solid var(--line);}
+  tr:hover td{background:var(--lorange);}
+  .scroll-table{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:6px;}
+
+  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold;}
+  .pill.green{background:var(--greenbg);color:var(--green);}
+  .pill.amber{background:var(--amberbg);color:var(--amber);}
+  .pill.red{background:var(--riskbg);color:var(--risk);}
+  .pill.grey{background:var(--grey);color:var(--sub);}
+  .pill.high{background:var(--riskbg);color:var(--risk);}
+  .pill.medium{background:var(--amberbg);color:var(--amber);}
+  .pill.low{background:var(--greenbg);color:var(--green);}
+
+  .section-title{background:var(--orange);color:#fff;font-size:12.5px;font-weight:bold;padding:8px 12px;border-radius:6px;margin:20px 0 12px;}
+
+  form.entry{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px;}
+  form.entry h3{margin:0 0 10px;color:var(--navy);font-size:14px;}
+  .frow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
+  .frow.wide{grid-template-columns:repeat(2,1fr);}
+  .fld label{display:block;font-size:10px;font-weight:bold;color:var(--navy);margin-bottom:3px;}
+  .fld input,.fld select,.fld textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-size:11.5px;font-family:Arial;}
+  .fld textarea{resize:vertical;min-height:36px;}
+  .btn{background:var(--orange);color:#fff;border:none;padding:9px 20px;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;}
+  .btn:disabled{opacity:.55;cursor:wait;}
+  .btn.secondary{background:var(--navy);}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--navy);}
+  .btn-row{display:flex;gap:8px;margin-top:6px;}
+  .small-btn{padding:3px 9px;font-size:10px;border-radius:4px;border:1px solid var(--navy);background:#fff;color:var(--navy);cursor:pointer;}
+  .small-btn.del{border-color:var(--risk);color:var(--risk);}
+  a.doclink{color:var(--blue);text-decoration:none;font-weight:bold;}
+  a.doclink:hover{text-decoration:underline;}
+
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:6px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.2);display:none;z-index:50;}
+  .toast.err{background:var(--risk);}
+  .empty{padding:24px;text-align:center;color:var(--sub);font-size:12px;}
+  .filter-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;}
+  .filter-row select,.filter-row input{padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-size:11px;}
+  .loader{position:fixed;inset:0;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;z-index:100;flex-direction:column;gap:10px;}
+  .loader .spin{width:36px;height:36px;border:4px solid var(--lblue);border-top-color:var(--orange);border-radius:50%;animation:sp 1s linear infinite;}
+  .loader span{font-size:12px;color:var(--navy);font-weight:bold;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  @media(max-width:1000px){.kpi-row{grid-template-columns:repeat(3,1fr);}.grid2,.grid3{grid-template-columns:1fr;}.frow{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <b>Mangalam Landmarks — BD Pipeline Intelligence</b>
+    <span>Live · Google Sheets backend · Business Development</span>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="ceo">CEO Dashboard</button>
+    <button class="tab-btn" data-view="bd">BD Executive — Data Entry</button>
+  </div>
+  <div class="updated">
+    <span id="lastUpdated">Loading…</span>
+    <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ========================= CEO DASHBOARD ========================= -->
+  <div class="view active" id="view-ceo">
+
+    <div class="kpi-row">
+      <div class="kpi"><div class="lbl">Total Proposals</div><div class="val" id="kpiTotal">–</div><div class="sub" id="kpiTotalSub"></div></div>
+      <div class="kpi"><div class="lbl">Total GDV in Pipeline</div><div class="val" id="kpiGdv">–</div><div class="sub">₹ Cr, all open proposals</div></div>
+      <div class="kpi"><div class="lbl">Probability-Weighted GDV</div><div class="val" id="kpiPGdv">–</div><div class="sub">₹ Cr, predictive</div></div>
+      <div class="kpi"><div class="lbl">MOU Signed</div><div class="val" id="kpiMou">–</div><div class="sub" id="kpiMouSub"></div></div>
+      <div class="kpi"><div class="lbl">Stalled (Red Health)</div><div class="val" id="kpiStalled">–</div><div class="sub">16+ days, no activity</div></div>
+      <div class="kpi"><div class="lbl">High Priority Open</div><div class="val" id="kpiHigh">–</div><div class="sub">Needs founder attention</div></div>
+    </div>
+
+    <div class="section-title">PREDICTIVE FORECAST — NEXT 90 DAYS</div>
+    <div class="grid3">
+      <div class="kpi" style="text-align:left;padding:16px;">
+        <div class="lbl" style="justify-content:flex-start;">Likely MOUs — Next 90 Days</div>
+        <div class="val" id="predMouCount">–</div>
+        <div class="sub" id="predMouGdv"></div>
+      </div>
+      <div class="kpi" style="text-align:left;padding:16px;">
+        <div class="lbl" style="justify-content:flex-start;">Expected GDV Conversion (90d)</div>
+        <div class="val" id="predGdv90">–</div>
+        <div class="sub">₹ Cr, probability-weighted</div>
+      </div>
+      <div class="kpi" style="text-align:left;padding:16px;">
+        <div class="lbl" style="justify-content:flex-start;">Avg. Pipeline Velocity</div>
+        <div class="val" id="predVelocity">–</div>
+        <div class="sub">days per stage (assumed 18 until history builds)</div>
+      </div>
+    </div>
+    <p class="note" style="margin:-6px 0 14px 2px;">Forecast is a heuristic model — each stage carries an assumed conversion probability (5% at first contact rising to 90%+ post-MOU) and an assumed 18 days/stage velocity, since fewer than 3 months of stage-transition history exists. Accuracy improves automatically as more meetings and stage changes are logged.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Pipeline Funnel — Proposals & GDV by Stage</h3>
+        <p class="note">Where every open proposal currently sits in the 12-step process.</p>
+        <div class="chart-wrap tall"><canvas id="funnelChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Pipeline Health</h3>
+        <p class="note">Green ≤7 days since last meeting · Amber 8–15 · Red 16+ · Grey = no meeting logged.</p>
+        <div class="chart-wrap tall"><canvas id="healthChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Status Mix</h3>
+        <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Micromarket-wise GDV Pipeline (Top 10)</h3>
+        <div class="chart-wrap"><canvas id="microChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">MEETINGS — NEXT 14 DAYS</div>
+    <div class="card">
+      <div class="scroll-table">
+        <table>
+          <thead><tr><th>Date</th><th>Proposal</th><th>Micromarket</th><th>With Whom</th><th>Agenda</th></tr></thead>
+          <tbody id="upcomingBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">STALLED PROPOSALS — NEEDS ATTENTION</div>
+    <div class="card">
+      <div class="scroll-table">
+        <table>
+          <thead><tr><th>Proposal</th><th>Micromarket</th><th>Stage</th><th>Days Idle</th><th>Last Decision</th><th>BD Exec.</th></tr></thead>
+          <tbody id="stalledBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">FULL PROPOSAL REGISTER</div>
+    <div class="card">
+      <div class="filter-row">
+        <select id="filterStatus"><option value="">All statuses</option></select>
+        <select id="filterHealth"><option value="">All health</option><option>Green</option><option>Amber</option><option>Red</option><option>No Meeting Logged</option></select>
+        <input type="text" id="filterSearch" placeholder="Search proposal / micromarket / reference…">
+      </div>
+      <div class="scroll-table" style="max-height:420px;">
+        <table>
+          <thead><tr><th>SN</th><th>Proposal</th><th>Micromarket</th><th>Deal Type</th><th>Status</th><th>Stage</th><th>GDV (Cr)</th><th>Priority</th><th>Health</th><th>Days Idle</th><th>Docs</th></tr></thead>
+          <tbody id="registerBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">DOCUMENT VAULT — ALL PROPOSAL DOCUMENTS</div>
+    <div class="card">
+      <div class="filter-row">
+        <select id="ceoDocFilterSn"><option value="">All proposals</option></select>
+      </div>
+      <div class="scroll-table" style="max-height:300px;">
+        <table>
+          <thead><tr><th>Proposal</th><th>Document Type</th><th>File</th><th>Uploaded By</th><th>Date</th></tr></thead>
+          <tbody id="ceoDocBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================= BD EXECUTIVE ENTRY ========================= -->
+  <div class="view" id="view-bd">
+
+    <form class="entry" id="proposalForm">
+      <h3 id="proposalFormTitle">Add New Proposal</h3>
+      <div class="frow">
+        <div class="fld"><label>Date Received</label><input type="date" id="p_date" required></div>
+        <div class="fld"><label>Proposal Name</label><input type="text" id="p_proposal" required></div>
+        <div class="fld"><label>Micromarket</label><input type="text" id="p_micromarket" required></div>
+        <div class="fld"><label>Plot Area (Sqm)</label><input type="number" id="p_plotArea"></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>Reference / Broker / Owner</label><input type="text" id="p_reference"></div>
+        <div class="fld"><label>Deal Type</label>
+          <select id="p_dealType"><option>JV</option><option>Outright</option><option>JV + Outright</option><option>Redevelopement</option><option>Redevelopement +JV</option><option>Lease</option></select>
+        </div>
+        <div class="fld"><label>Source Type</label>
+          <select id="p_sourceType"><option>Broker</option><option>Land Owner</option><option>Stakeholder Referral</option><option>Direct Inquiry</option><option>Society/Redevelopment Body</option><option>Other</option></select>
+        </div>
+        <div class="fld"><label>BD Executive (Owner)</label><input type="text" id="p_bdExecutive"></div>
+      </div>
+      <div class="frow wide">
+        <div class="fld"><label>Deal Details</label><textarea id="p_dealDetails"></textarea></div>
+        <div class="fld"><label>Feasibility Notes</label><textarea id="p_feasibilityNotes"></textarea></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>Saleable Sqft</label><input type="number" id="p_saleableSqft"></div>
+        <div class="fld"><label>GDV (₹ Cr)</label><input type="number" step="0.01" id="p_gdv"></div>
+        <div class="fld"><label>ROI %</label><input type="number" step="0.1" id="p_roi"></div>
+        <div class="fld"><label>Net Profit (₹ Cr)</label><input type="number" step="0.01" id="p_netProfit"></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>Investment (₹ Cr)</label><input type="number" step="0.01" id="p_investment"></div>
+        <div class="fld"><label>Payback Period (yrs)</label><input type="number" step="0.1" id="p_payback"></div>
+        <div class="fld"><label>Status</label>
+          <select id="p_status"><option>New</option><option>Offer Given</option><option>Tender Submitted</option><option>Presentation Done</option><option>Presentation+Visit Done</option><option>Negotiation</option><option>Legal DD</option><option>MOU Signed</option><option>Under Execution</option><option>Dropped</option><option>On Hold</option></select>
+        </div>
+        <div class="fld"><label>Priority</label><select id="p_priority"><option>Medium</option><option>High</option><option>Low</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>Current Stage</label>
+          <select id="p_currentStage">
+            <option>1. Proposal Received</option><option>2. First Meeting Done</option><option>3. Feasibility Study</option>
+            <option>4. Discussion Meeting</option><option>5. Negotiation</option><option>6. Legal Due Diligence</option>
+            <option>7. Final Terms Meeting</option><option>8. MOU Signed</option><option>9. Physical Demarcation</option>
+            <option>10. PA/DA or Sale Deed</option><option>11. Barricading</option><option>12. Govt Demarcation - Handover to Design</option>
+          </select>
+        </div>
+        <div class="fld"><label>Feasibility Status</label><select id="p_feasibility"><option>Not Started</option><option>Pending</option><option>Positive</option><option>Negative</option></select></div>
+        <div class="fld"><label>Legal DD Status</label><select id="p_legalDD"><option>Not Started</option><option>In Progress</option><option>Clear</option><option>Issue Found</option></select></div>
+        <div class="fld"><label>MOU Date (if signed)</label><input type="date" id="p_mouDate"></div>
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn" id="proposalSaveBtn">Save Proposal</button>
+        <button type="button" class="btn ghost" id="cancelEditBtn" style="display:none;">Cancel Edit</button>
+      </div>
+    </form>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h3 style="color:var(--navy);margin-top:0;">All Proposals — click Edit to modify</h3>
+      <div class="scroll-table" style="max-height:280px;">
+        <table>
+          <thead><tr><th>SN</th><th>Proposal</th><th>Micromarket</th><th>Status</th><th>Stage</th><th>GDV</th><th></th></tr></thead>
+          <tbody id="bdProposalBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <form class="entry" id="meetingForm">
+      <h3>Log a Meeting</h3>
+      <div class="frow">
+        <div class="fld" style="grid-column:span 2;"><label>Proposal</label><select id="m_sn" required></select></div>
+        <div class="fld"><label>Meeting Date</label><input type="date" id="m_date" required></div>
+        <div class="fld"><label>Meeting Type</label><select id="m_type"><option>Physical</option><option>Video Conference</option><option>Phone Call</option><option>Site Visit</option><option>Email/Written</option></select></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>Our Attendees</label><input type="text" id="m_ours"></div>
+        <div class="fld"><label>Their Attendees (With Whom)</label><input type="text" id="m_theirs"></div>
+        <div class="fld"><label>Next Meeting Date</label><input type="date" id="m_nextDate"></div>
+        <div class="fld"><label>Next Meeting With</label><input type="text" id="m_nextWith"></div>
+      </div>
+      <div class="frow wide">
+        <div class="fld"><label>Discussed / Agenda</label><textarea id="m_discussed"></textarea></div>
+        <div class="fld"><label>Decisions Taken</label><textarea id="m_decisions"></textarea></div>
+      </div>
+      <div class="frow wide">
+        <div class="fld"><label>Action Items</label><textarea id="m_action"></textarea></div>
+        <div class="fld"><label>Next Meeting Agenda</label><textarea id="m_nextAgenda"></textarea></div>
+      </div>
+      <div class="frow">
+        <div class="fld"><label>Entered By</label><input type="text" id="m_enteredBy"></div>
+      </div>
+      <div class="btn-row"><button type="submit" class="btn" id="meetingSaveBtn">Save Meeting</button></div>
+    </form>
+
+    <div class="card" style="margin-bottom:18px;">
+      <h3 style="color:var(--navy);margin-top:0;">Meeting Log</h3>
+      <div class="filter-row">
+        <select id="meetingFilterSn"><option value="">All proposals</option></select>
+      </div>
+      <div class="scroll-table" style="max-height:320px;">
+        <table>
+          <thead><tr><th>Date</th><th>Proposal</th><th>Type</th><th>With Whom</th><th>Decisions</th><th>Next Meeting</th><th></th></tr></thead>
+          <tbody id="meetingBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <form class="entry" id="docForm">
+      <h3>Upload Document — 7/12 Extract, Search Report, Title, Feasibility, MOU, Offers</h3>
+      <div class="frow">
+        <div class="fld" style="grid-column:span 2;"><label>Proposal</label><select id="d_sn" required></select></div>
+        <div class="fld"><label>Document Type</label>
+          <select id="d_type"><option>7/12 Extract</option><option>Search Report</option><option>Title Documents</option><option>Feasibility Report</option><option>Offer Letter / Tender</option><option>MOU / Agreement</option><option>Sanction / Approval</option><option>Site Photos / Survey</option><option>Other</option></select>
+        </div>
+        <div class="fld"><label>Uploaded By</label><input type="text" id="d_uploadedBy"></div>
+      </div>
+      <div class="frow wide">
+        <div class="fld"><label>File (PDF / Image / Doc / Excel — max 10 MB)</label><input type="file" id="d_file" required></div>
+        <div class="fld" style="display:flex;align-items:flex-end;"><button type="submit" class="btn" id="docSaveBtn">Upload to Drive</button></div>
+      </div>
+      <p class="note" style="margin:0;">Files are stored in the shared Google Drive folder "BD Pipeline Documents", organised per proposal, and logged in the Documents sheet. Anyone with the link can view.</p>
+    </form>
+
+    <div class="card">
+      <h3 style="color:var(--navy);margin-top:0;">Document Register</h3>
+      <div class="filter-row">
+        <select id="docFilterSn"><option value="">All proposals</option></select>
+      </div>
+      <div class="scroll-table" style="max-height:300px;">
+        <table>
+          <thead><tr><th>Proposal</th><th>Type</th><th>File</th><th>Size</th><th>Uploaded By</th><th>Date</th><th></th></tr></thead>
+          <tbody id="docBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="loader" id="loader"><div class="spin"></div><span id="loaderMsg">Loading pipeline from Google Sheets…</span></div>
+
+<script>
+/* ============================================================
+   CONFIGURATION — paste your Apps Script Web App /exec URL here
+   ============================================================ */
+const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const MAX_FILE_MB = 10;
+
+const STAGES = ['1. Proposal Received','2. First Meeting Done','3. Feasibility Study','4. Discussion Meeting',
+  '5. Negotiation','6. Legal Due Diligence','7. Final Terms Meeting','8. MOU Signed',
+  '9. Physical Demarcation','10. PA/DA or Sale Deed','11. Barricading','12. Govt Demarcation - Handover to Design'];
+const STAGE_PROB = {
+  '1. Proposal Received':0.05,'2. First Meeting Done':0.10,'3. Feasibility Study':0.18,
+  '4. Discussion Meeting':0.28,'5. Negotiation':0.40,'6. Legal Due Diligence':0.55,
+  '7. Final Terms Meeting':0.68,'8. MOU Signed':0.90,'9. Physical Demarcation':0.93,
+  '10. PA/DA or Sale Deed':0.96,'11. Barricading':0.98,'12. Govt Demarcation - Handover to Design':1.0
+};
+const VELOCITY_DAYS = 18;
+
+let proposals = [];
+let meetings = [];
+let documents = [];
+let editingSn = null;
+
+const $ = (id) => document.getElementById(id);
+function toast(msg, isErr){ const t=$('toast'); t.textContent=msg; t.className='toast'+(isErr?' err':''); t.style.display='block'; setTimeout(()=>t.style.display='none', 2600); }
+function showLoader(msg){ $('loaderMsg').textContent = msg||'Working…'; $('loader').style.display='flex'; }
+function hideLoader(){ $('loader').style.display='none'; }
+function fmtDate(d){ if(!d) return ''; const dt = new Date(String(d).slice(0,10)+'T00:00:00'); if(isNaN(dt)) return d; return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function daysBetween(a,b){ return Math.round((new Date(b) - new Date(a)) / 86400000); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ---------------- API layer (Google Sheets via Apps Script) ---------------- */
+async function apiGet(){
+  const res = await fetch(API_URL + '?action=all', { method:'GET' });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+async function apiPost(payload){
+  // text/plain avoids CORS preflight — Apps Script web apps accept it
+  const res = await fetch(API_URL, {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+async function loadData(){
+  showLoader('Loading pipeline from Google Sheets…');
+  try{
+    const data = await apiGet();
+    proposals = data.proposals || [];
+    meetings  = data.meetings  || [];
+    documents = data.documents || [];
+    $('lastUpdated').textContent = 'Live · synced ' + new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  }catch(err){
+    console.error(err);
+    toast('Could not load from Google Sheets: ' + err.message, true);
+    $('lastUpdated').textContent = 'Connection failed — check API URL';
+  }finally{
+    hideLoader();
+  }
+}
+
+/* ---------------- Derived intelligence ---------------- */
+function proposalMeetings(sn){ return meetings.filter(m => m.sn === sn).sort((a,b)=> new Date(b.date) - new Date(a.date)); }
+function lastMeeting(sn){ const ms = proposalMeetings(sn); return ms.length ? ms[0] : null; }
+function daysIdle(sn){ const lm = lastMeeting(sn); if(!lm || !lm.date) return null; return daysBetween(lm.date, todayISO()); }
+function health(sn){ const d = daysIdle(sn); if(d===null) return 'No Meeting Logged'; if(d<=7) return 'Green'; if(d<=15) return 'Amber'; return 'Red'; }
+function healthClass(h){ return {'Green':'green','Amber':'amber','Red':'red','No Meeting Logged':'grey'}[h] || 'grey'; }
+function docCount(sn){ return documents.filter(d => d.sn === sn).length; }
+function predictedMouDate(p){
+  const i = STAGES.indexOf(p.currentStage);
+  if(i>=7 || p.status==='Dropped') return null;
+  const stagesToMou = 7 - i;
+  const d = new Date(); d.setDate(d.getDate() + stagesToMou*VELOCITY_DAYS);
+  return d.toISOString().slice(0,10);
+}
+
+/* ---------------- Rendering: CEO Dashboard ---------------- */
+let charts = {};
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+function renderCeo(){
+  const open = proposals.filter(p => p.status !== 'Dropped');
+  const totalGdv = open.reduce((s,p)=> s + (Number(p.gdv)||0), 0);
+  const pGdv = open.reduce((s,p)=> s + (Number(p.gdv)||0) * (STAGE_PROB[p.currentStage]||0.05), 0);
+  const mouSigned = proposals.filter(p => p.status === 'MOU Signed' || p.currentStage === '8. MOU Signed').length;
+  const stalled = open.filter(p => health(p.sn) === 'Red');
+  const highOpen = open.filter(p => p.priority === 'High');
+
+  $('kpiTotal').textContent = proposals.length;
+  $('kpiTotalSub').textContent = open.length + ' open';
+  $('kpiGdv').textContent = totalGdv.toFixed(1);
+  $('kpiPGdv').textContent = pGdv.toFixed(1);
+  $('kpiMou').textContent = mouSigned;
+  $('kpiMouSub').textContent = 'of ' + proposals.length + ' total';
+  $('kpiStalled').textContent = stalled.length;
+  $('kpiHigh').textContent = highOpen.length;
+
+  const in90 = open.filter(p => {
+    const pm = predictedMouDate(p);
+    if(!pm) return false;
+    return daysBetween(todayISO(), pm) <= 90;
+  });
+  const in90Gdv = in90.reduce((s,p)=> s + (Number(p.gdv)||0), 0);
+  $('predMouCount').textContent = in90.length;
+  $('predMouGdv').textContent = '≈ ₹' + in90Gdv.toFixed(1) + ' Cr GDV, at current velocity';
+  $('predGdv90').textContent = pGdv.toFixed(1);
+  $('predVelocity').textContent = VELOCITY_DAYS;
+
+  const funnelCounts = STAGES.map(s => open.filter(p=>p.currentStage===s).length);
+  const funnelGdv = STAGES.map(s => open.filter(p=>p.currentStage===s).reduce((sum,p)=>sum+(Number(p.gdv)||0),0));
+  destroyChart('funnel');
+  charts.funnel = new Chart($('funnelChart'), {
+    type:'bar',
+    data:{ labels:STAGES, datasets:[
+      {label:'Proposals', data:funnelCounts, backgroundColor:'#2E5FA3'},
+    ]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{afterLabel:(ctx)=> 'GDV ₹'+funnelGdv[ctx.dataIndex].toFixed(1)+' Cr'}}},
+      scales:{x:{beginAtZero:true, ticks:{precision:0}}, y:{ticks:{font:{size:10}}}}
+    }
+  });
+
+  const healthLabels = ['Green','Amber','Red','No Meeting Logged'];
+  const healthCounts = healthLabels.map(h => open.filter(p=>health(p.sn)===h).length);
+  destroyChart('health');
+  charts.health = new Chart($('healthChart'), {
+    type:'doughnut',
+    data:{ labels:healthLabels, datasets:[{ data:healthCounts, backgroundColor:['#1E7B4D','#B8860B','#C0392B','#B7BCC4'] }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10}}}} }
+  });
+
+  const statusSet = [...new Set(proposals.map(p=>p.status))];
+  const statusCounts = statusSet.map(s => proposals.filter(p=>p.status===s).length);
+  destroyChart('status');
+  charts.status = new Chart($('statusChart'), {
+    type:'pie',
+    data:{ labels:statusSet, datasets:[{ data:statusCounts, backgroundColor:['#1B3A6B','#2E5FA3','#D4621A','#7FA6D6','#E8A87C','#5b6b80','#B8860B','#1E7B4D','#C0392B','#9b8ec4','#3fa7a0'] }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:9}}}} }
+  });
+
+  const microMap = {};
+  open.forEach(p => { const k = (p.micromarket||'Unspecified').trim(); microMap[k] = (microMap[k]||0) + (Number(p.gdv)||0); });
+  const microSorted = Object.entries(microMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  destroyChart('micro');
+  charts.micro = new Chart($('microChart'), {
+    type:'bar',
+    data:{ labels: microSorted.map(x=>x[0]), datasets:[{ label:'GDV ₹Cr', data: microSorted.map(x=>x[1].toFixed(1)), backgroundColor:'#D4621A' }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+  });
+
+  const upcoming = meetings.filter(m => m.nextMeetingDate && daysBetween(todayISO(), m.nextMeetingDate) >= 0 && daysBetween(todayISO(), m.nextMeetingDate) <= 14)
+    .sort((a,b)=> new Date(a.nextMeetingDate) - new Date(b.nextMeetingDate));
+  const upBody = $('upcomingBody'); upBody.innerHTML='';
+  if(!upcoming.length){ upBody.innerHTML = `<tr><td colspan="5" class="empty">No meetings scheduled in the next 14 days.</td></tr>`; }
+  upcoming.forEach(m => {
+    const p = proposals.find(pp=>pp.sn===m.sn);
+    upBody.insertAdjacentHTML('beforeend', `<tr><td>${fmtDate(m.nextMeetingDate)}</td><td>${esc(p?p.proposal:'—')}</td><td>${esc(p?p.micromarket:'—')}</td><td>${esc(m.nextMeetingWith||'—')}</td><td>${esc(m.nextAgenda||'—')}</td></tr>`);
+  });
+
+  const stalledSorted = stalled.slice().sort((a,b)=> (daysIdle(b.sn)||0) - (daysIdle(a.sn)||0));
+  const stBody = $('stalledBody'); stBody.innerHTML='';
+  if(!stalledSorted.length){ stBody.innerHTML = `<tr><td colspan="6" class="empty">Nothing stalled right now.</td></tr>`; }
+  stalledSorted.forEach(p => {
+    const lm = lastMeeting(p.sn);
+    stBody.insertAdjacentHTML('beforeend', `<tr><td>${esc(p.proposal)}</td><td>${esc(p.micromarket)}</td><td>${esc(p.currentStage)}</td><td>${daysIdle(p.sn)}</td><td>${esc(lm?(lm.decisions||'—'):'—')}</td><td>${esc(p.bdExecutive||'—')}</td></tr>`);
+  });
+
+  const statusFilterVal = $('filterStatus').value;
+  const healthFilterVal = $('filterHealth').value;
+  const searchVal = $('filterSearch').value.trim().toLowerCase();
+  const regBody = $('registerBody'); regBody.innerHTML='';
+  const filtered = proposals.filter(p => {
+    if(statusFilterVal && p.status !== statusFilterVal) return false;
+    if(healthFilterVal && health(p.sn) !== healthFilterVal) return false;
+    if(searchVal && !(`${p.proposal} ${p.micromarket} ${p.reference||''}`.toLowerCase().includes(searchVal))) return false;
+    return true;
+  });
+  if(!filtered.length){ regBody.innerHTML = `<tr><td colspan="11" class="empty">No proposals match this filter.</td></tr>`; }
+  filtered.forEach(p => {
+    const h = health(p.sn); const di = daysIdle(p.sn); const dc = docCount(p.sn);
+    regBody.insertAdjacentHTML('beforeend', `<tr>
+      <td>${p.sn}</td><td>${esc(p.proposal)}</td><td>${esc(p.micromarket)}</td><td>${esc(p.dealType||'—')}</td>
+      <td>${esc(p.status)}</td><td style="font-size:10.5px;">${esc(p.currentStage)}</td>
+      <td>${p.gdv?Number(p.gdv).toFixed(1):'—'}</td>
+      <td><span class="pill ${p.priority?p.priority.toLowerCase():'medium'}">${esc(p.priority||'Medium')}</span></td>
+      <td><span class="pill ${healthClass(h)}">${h}</span></td>
+      <td>${di===null?'—':di}</td>
+      <td>${dc?('<span class="pill green">'+dc+'</span>'):'—'}</td>
+    </tr>`);
+  });
+
+  if($('filterStatus').options.length <= 1){
+    [...new Set(proposals.map(p=>p.status))].forEach(s => {
+      const opt = document.createElement('option'); opt.value = s; opt.textContent = s; $('filterStatus').appendChild(opt);
+    });
+  }
+
+  renderCeoDocs();
+}
+
+function renderCeoDocs(){
+  const filterSn = $('ceoDocFilterSn').value;
+  const body = $('ceoDocBody'); body.innerHTML='';
+  const list = documents.filter(d => !filterSn || d.sn===Number(filterSn)).slice().sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+  if(!list.length){ body.innerHTML = `<tr><td colspan="5" class="empty">No documents uploaded yet. BD Executives can upload from the Data Entry tab.</td></tr>`; return; }
+  list.forEach(d => {
+    body.insertAdjacentHTML('beforeend', `<tr>
+      <td>${d.sn} — ${esc(d.proposalName)}</td><td>${esc(d.docType)}</td>
+      <td><a class="doclink" href="${esc(d.link)}" target="_blank" rel="noopener">${esc(d.fileName)}</a></td>
+      <td>${esc(d.uploadedBy||'—')}</td><td>${fmtDate(d.timestamp)}</td>
+    </tr>`);
+  });
+}
+
+/* ---------------- Rendering: BD Executive tab ---------------- */
+function proposalOptions(){
+  return proposals.slice().sort((a,b)=>a.sn-b.sn).map(p => `<option value="${p.sn}">${p.sn} — ${esc(p.proposal)} (${esc(p.micromarket)})</option>`).join('');
+}
+
+function renderBdList(){
+  const body = $('bdProposalBody'); body.innerHTML='';
+  proposals.slice().sort((a,b)=>b.sn-a.sn).forEach(p => {
+    body.insertAdjacentHTML('beforeend', `<tr data-sn="${p.sn}">
+      <td>${p.sn}</td><td>${esc(p.proposal)}</td><td>${esc(p.micromarket)}</td><td>${esc(p.status)}</td>
+      <td style="font-size:10.5px;">${esc(p.currentStage)}</td><td>${p.gdv?Number(p.gdv).toFixed(1):'—'}</td>
+      <td><button class="small-btn edit-btn" data-sn="${p.sn}">Edit</button> <button class="small-btn del del-btn" data-sn="${p.sn}">Delete</button></td>
+    </tr>`);
+  });
+  body.querySelectorAll('.edit-btn').forEach(b => b.addEventListener('click', (e)=>{ e.stopPropagation(); editProposal(Number(b.dataset.sn)); }));
+  body.querySelectorAll('.del-btn').forEach(b => b.addEventListener('click', async (e)=>{
+    e.stopPropagation();
+    if(confirm('Delete this proposal permanently from the Google Sheet?')){
+      showLoader('Deleting proposal…');
+      try{
+        await apiPost({ action:'deleteProposal', sn:Number(b.dataset.sn) });
+        toast('Proposal deleted');
+        await loadData(); renderAll();
+      }catch(err){ toast('Delete failed: '+err.message, true); hideLoader(); }
+    }
+  }));
+
+  const opts = proposalOptions();
+  $('m_sn').innerHTML = opts;
+  $('d_sn').innerHTML = opts;
+  const filterOpts = '<option value="">All proposals</option>' + opts;
+  ['meetingFilterSn','docFilterSn','ceoDocFilterSn'].forEach(id => {
+    const cur = $(id).value;
+    $(id).innerHTML = filterOpts;
+    $(id).value = cur;
+  });
+}
+
+function editProposal(sn){
+  const p = proposals.find(x=>x.sn===sn); if(!p) return;
+  editingSn = sn;
+  $('proposalFormTitle').textContent = 'Edit Proposal #' + sn + ' — ' + p.proposal;
+  $('p_date').value = (p.date||'').slice(0,10); $('p_proposal').value = p.proposal||''; $('p_micromarket').value = p.micromarket||'';
+  $('p_plotArea').value = p.plotArea||''; $('p_reference').value = p.reference||''; $('p_dealType').value = p.dealType||'JV';
+  $('p_sourceType').value = p.sourceType||'Broker'; $('p_bdExecutive').value = p.bdExecutive||'';
+  $('p_dealDetails').value = p.dealDetails||''; $('p_feasibilityNotes').value = p.feasibilityNotes||'';
+  $('p_saleableSqft').value = p.saleableSqft||''; $('p_gdv').value = p.gdv||''; $('p_roi').value = p.roi||'';
+  $('p_netProfit').value = p.netProfit||''; $('p_investment').value = p.investment||''; $('p_payback').value = p.payback||'';
+  $('p_status').value = p.status||'New'; $('p_priority').value = p.priority||'Medium';
+  $('p_currentStage').value = STAGES.includes(p.currentStage) ? p.currentStage : STAGES[0];
+  $('p_feasibility').value = p.feasibility||'Not Started'; $('p_legalDD').value = p.legalDD||'Not Started'; $('p_mouDate').value = (p.mouDate||'').slice(0,10);
+  $('cancelEditBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function resetProposalForm(){
+  editingSn = null;
+  $('proposalForm').reset();
+  $('proposalFormTitle').textContent = 'Add New Proposal';
+  $('cancelEditBtn').style.display = 'none';
+  $('p_date').value = todayISO();
+}
+
+function renderMeetingList(){
+  const filterSn = $('meetingFilterSn').value;
+  const body = $('meetingBody'); body.innerHTML='';
+  const list = meetings.filter(m => !filterSn || m.sn===Number(filterSn)).slice().sort((a,b)=> new Date(b.date)-new Date(a.date));
+  if(!list.length){ body.innerHTML = `<tr><td colspan="7" class="empty">No meetings logged yet.</td></tr>`; return; }
+  list.forEach(m => {
+    const p = proposals.find(pp=>pp.sn===m.sn);
+    body.insertAdjacentHTML('beforeend', `<tr>
+      <td>${fmtDate(m.date)}</td><td>${esc(p?p.proposal:'—')}</td><td>${esc(m.type)}</td><td>${esc(m.theirs||'—')}</td>
+      <td style="max-width:220px;">${esc(m.decisions||'—')}</td><td>${m.nextMeetingDate?fmtDate(m.nextMeetingDate):'—'}</td>
+      <td><button class="small-btn del meeting-del" data-sn="${m.sn}" data-ts="${esc(m.timestamp)}">Delete</button></td>
+    </tr>`);
+  });
+  body.querySelectorAll('.meeting-del').forEach(b => b.addEventListener('click', async ()=>{
+    if(confirm('Delete this meeting entry from the Google Sheet?')){
+      showLoader('Deleting meeting…');
+      try{
+        await apiPost({ action:'deleteMeeting', sn:Number(b.dataset.sn), timestamp:b.dataset.ts });
+        toast('Meeting deleted');
+        await loadData(); renderAll();
+      }catch(err){ toast('Delete failed: '+err.message, true); hideLoader(); }
+    }
+  }));
+}
+
+function renderDocList(){
+  const filterSn = $('docFilterSn').value;
+  const body = $('docBody'); body.innerHTML='';
+  const list = documents.filter(d => !filterSn || d.sn===Number(filterSn)).slice().sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+  if(!list.length){ body.innerHTML = `<tr><td colspan="7" class="empty">No documents uploaded yet.</td></tr>`; return; }
+  list.forEach(d => {
+    body.insertAdjacentHTML('beforeend', `<tr>
+      <td>${d.sn} — ${esc(d.proposalName)}</td><td>${esc(d.docType)}</td>
+      <td><a class="doclink" href="${esc(d.link)}" target="_blank" rel="noopener">${esc(d.fileName)}</a></td>
+      <td>${d.sizeKb?d.sizeKb+' KB':'—'}</td><td>${esc(d.uploadedBy||'—')}</td><td>${fmtDate(d.timestamp)}</td>
+      <td><button class="small-btn del doc-del" data-id="${esc(d.docId)}">Delete</button></td>
+    </tr>`);
+  });
+  body.querySelectorAll('.doc-del').forEach(b => b.addEventListener('click', async ()=>{
+    if(confirm('Delete this document (moves the Drive file to trash)?')){
+      showLoader('Deleting document…');
+      try{
+        await apiPost({ action:'deleteDocument', docId:b.dataset.id });
+        toast('Document deleted');
+        await loadData(); renderAll();
+      }catch(err){ toast('Delete failed: '+err.message, true); hideLoader(); }
+    }
+  }));
+}
+
+/* ---------------- Form handlers ---------------- */
+$('proposalForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    sn: editingSn,
+    date: $('p_date').value, proposal: $('p_proposal').value, micromarket: $('p_micromarket').value,
+    plotArea: Number($('p_plotArea').value)||null, reference: $('p_reference').value, dealType: $('p_dealType').value,
+    dealDetails: $('p_dealDetails').value, sourceType: $('p_sourceType').value, bdExecutive: $('p_bdExecutive').value,
+    saleableSqft: Number($('p_saleableSqft').value)||null, gdv: Number($('p_gdv').value)||null,
+    roi: Number($('p_roi').value)||null, netProfit: Number($('p_netProfit').value)||null,
+    investment: Number($('p_investment').value)||null, payback: Number($('p_payback').value)||null,
+    status: $('p_status').value, priority: $('p_priority').value, currentStage: $('p_currentStage').value,
+    feasibility: $('p_feasibility').value, feasibilityNotes: $('p_feasibilityNotes').value,
+    legalDD: $('p_legalDD').value, mouDate: $('p_mouDate').value
+  };
+  $('proposalSaveBtn').disabled = true;
+  showLoader(editingSn ? 'Updating proposal in Google Sheet…' : 'Saving proposal to Google Sheet…');
+  try{
+    await apiPost({ action:'saveProposal', data });
+    toast(editingSn ? 'Proposal updated' : 'Proposal added');
+    resetProposalForm();
+    await loadData(); renderAll();
+  }catch(err){ toast('Save failed: '+err.message, true); hideLoader(); }
+  finally{ $('proposalSaveBtn').disabled = false; }
+});
+$('cancelEditBtn').addEventListener('click', resetProposalForm);
+
+$('meetingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    sn: Number($('m_sn').value), date: $('m_date').value, type: $('m_type').value,
+    ours: $('m_ours').value, theirs: $('m_theirs').value, discussed: $('m_discussed').value,
+    decisions: $('m_decisions').value, action: $('m_action').value,
+    nextMeetingDate: $('m_nextDate').value, nextMeetingWith: $('m_nextWith').value,
+    nextAgenda: $('m_nextAgenda').value, enteredBy: $('m_enteredBy').value
+  };
+  $('meetingSaveBtn').disabled = true;
+  showLoader('Logging meeting to Google Sheet…');
+  try{
+    await apiPost({ action:'addMeeting', data });
+    $('meetingForm').reset();
+    $('m_date').value = todayISO();
+    toast('Meeting logged');
+    await loadData(); renderAll();
+  }catch(err){ toast('Save failed: '+err.message, true); hideLoader(); }
+  finally{ $('meetingSaveBtn').disabled = false; }
+});
+
+$('docForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const file = $('d_file').files[0];
+  if(!file){ toast('Choose a file first', true); return; }
+  if(file.size > MAX_FILE_MB * 1024 * 1024){ toast('File too large — max ' + MAX_FILE_MB + ' MB', true); return; }
+
+  const base64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(',')[1]);
+    r.onerror = () => rej(new Error('Could not read file'));
+    r.readAsDataURL(file);
+  });
+
+  $('docSaveBtn').disabled = true;
+  showLoader('Uploading "' + file.name + '" to Google Drive…');
+  try{
+    await apiPost({ action:'uploadDocument', data:{
+      sn: Number($('d_sn').value), docType: $('d_type').value,
+      fileName: file.name, mimeType: file.type || 'application/octet-stream',
+      base64, uploadedBy: $('d_uploadedBy').value
+    }});
+    $('d_file').value = '';
+    toast('Document uploaded to Drive');
+    await loadData(); renderAll();
+  }catch(err){ toast('Upload failed: '+err.message, true); hideLoader(); }
+  finally{ $('docSaveBtn').disabled = false; }
+});
+
+$('filterStatus').addEventListener('change', renderCeo);
+$('filterHealth').addEventListener('change', renderCeo);
+$('filterSearch').addEventListener('input', renderCeo);
+$('meetingFilterSn').addEventListener('change', renderMeetingList);
+$('docFilterSn').addEventListener('change', renderDocList);
+$('ceoDocFilterSn').addEventListener('change', renderCeoDocs);
+$('refreshBtn').addEventListener('click', async ()=>{ await loadData(); renderAll(); toast('Refreshed from Google Sheets'); });
+
+/* ---------------- Tabs ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    $('view-' + btn.dataset.view).classList.add('active');
+  });
+});
+
+function renderAll(){ renderCeo(); renderBdList(); renderMeetingList(); renderDocList(); }
+
+(async function init(){
+  resetProposalForm();
+  $('m_date').value = todayISO();
+  if(API_URL.indexOf('PASTE_YOUR') === 0){
+    hideLoader();
+    toast('Set API_URL in index.html to your Apps Script Web App URL', true);
+    $('lastUpdated').textContent = 'Not configured — set API_URL';
+    return;
+  }
+  await loadData();
+  renderAll();
+  // Auto-refresh every 5 minutes so CEO view stays live
+  setInterval(async ()=>{ const d = await apiGet().catch(()=>null); if(d){ proposals=d.proposals; meetings=d.meetings; documents=d.documents; renderAll(); } }, 300000);
+})();
+</script>
+</body>
+</html>
