@@ -19,7 +19,8 @@
   header .brand{display:flex;flex-direction:column;}
   header .brand b{font-size:17px;letter-spacing:.2px;}
   header .brand span{font-size:11.5px;color:#c7d5ea;}
-  .tabs{display:flex;gap:6px;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;}
+  .tab-link{text-decoration:none;display:inline-flex;align-items:center;line-height:1;}
   .tab-btn{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 16px;border-radius:6px;font-size:12.5px;cursor:pointer;font-weight:bold;}
   .tab-btn.active{background:var(--orange);border-color:var(--orange);}
   .updated{font-size:10.5px;color:#c7d5ea;display:flex;align-items:center;gap:8px;}
@@ -98,6 +99,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-view="ceo">CEO Dashboard</button>
     <button class="tab-btn" data-view="bd">BD Executive — Data Entry</button>
+    <a class="tab-btn tab-link" href="https://portfolio-iota-dun-14.vercel.app/" target="_blank" rel="noopener noreferrer">Portfolio ↗</a>
   </div>
   <div class="updated">
     <span id="lastUpdated">Loading…</span>
@@ -775,9 +777,9 @@ $('ceoDocFilterSn').addEventListener('change', renderCeoDocs);
 $('refreshBtn').addEventListener('click', async ()=>{ await loadData(); renderAll(); toast('Refreshed from Google Sheets'); });
 
 /* ---------------- Tabs ---------------- */
-document.querySelectorAll('.tab-btn').forEach(btn => {
+document.querySelectorAll('.tab-btn[data-view]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn[data-view]').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     $('view-' + btn.dataset.view).classList.add('active');
